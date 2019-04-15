@@ -171,7 +171,7 @@ def find_nearest_vectors_for_centroids(centroids_as_objects, training_set, strat
         min_centroid = None
 
         for centroid in centroids_as_objects:
-            argmin = strategy(centroid.get_centroid(), vector)
+            argmin = strategy(centroid.get_value(), vector)
 
             if argmin < minimal_argmin:
                 minimal_argmin = argmin
@@ -199,7 +199,7 @@ def min_distance_avg_calculated_loss(centroids_as_objects, training_set, strateg
         min_dist = sys.maxsize
 
         for centroid in centroids_as_objects:
-            distance = strategy(centroid.get_centroid(), vector)
+            distance = strategy(centroid.get_value(), vector)
 
             if  distance < min_dist:
                 min_dist = distance
@@ -272,7 +272,7 @@ def knn(centroids, training_set):
 
         # update all centroids
         for centroid in centroids_as_objects:
-            centroid.update_centroid(vectors_vector_average)
+            centroid.update(vectors_vector_average)
 
         print_iteration_and_centroid(it, centroids_as_objects)
 
