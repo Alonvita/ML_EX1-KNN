@@ -48,14 +48,37 @@ class CentroidObject:
 
         :return: a string representation of the _centroid
         """
-        return str([", ".join(str("%.2f" % x) for x in self._centroid)]).replace("0.00", "0.")
+        return str([", ".join(str(CentroidObject.__lop_off(x, 2)) for x in self._centroid)]).replace("0.00", "0.")
 
     def update_centroid(self, heuristics_func):
+        if len(self._nearest_vectors_vector) == 0:
+            return
+
         # use the given heuristics to update the _centroid
         self._centroid = heuristics_func(self._nearest_vectors_vector)
 
-        # reinitialize the nearest_vectors_vector
+    def clear_nearest_neighbors(self):
         self._nearest_vectors_vector = []
+
+    def update_nearest_neighbors(self):
+        """
+        update_nearest_neighbors(centroids_as_objects).
+
+        update all closest neighbors to the value of the centroid.
+        """
+
+        # for each vector
+        for vector in self._nearest_vectors_vector:
+            centroid_vec = self._centroid
+
+            # update the pixel to centroids values
+            for dim in range(len(vector)):
+                vector[dim] = centroid_vec[dim]
+
+    @staticmethod
+    def __lop_off(n, decimals=0):
+        multiplier = 10 ** decimals
+        return int(n * multiplier) / multiplier
 
 
 def init_centroids(X, K):
@@ -126,7 +149,7 @@ def load_img_file():
     img_read = img_read.astype(float) / 255.
     img_size = img_read.shape
 
-    return img_read.reshape(img_size[0] * img_size[1], img_size[2])
+    return img_read, img_read.reshape(img_size[0] * img_size[1], img_size[2])
 
 
 def euclidean_distance(vector1, vector2, vector_size=RGB_VECTOR_SIZE):
@@ -153,7 +176,7 @@ def euclidean_distance(vector1, vector2, vector_size=RGB_VECTOR_SIZE):
     return float(math.sqrt(distance_sum))
 
 
-def find_nearest_vectors_for_centroids(centroids_as_objects, training_set, strategy):
+def find_nearest_vectors_for_centroids(centroids_as_objects, training_set, distance_calculation_func):
     """
     find_nearest_vectors_for_centroids(centroids_as_objects, training_set).
 
@@ -163,7 +186,7 @@ def find_nearest_vectors_for_centroids(centroids_as_objects, training_set, strat
 
     :param centroids_as_objects: an array of CentroidsObjects
     :param training_set: the training set
-    :param strategy: the strategy to use
+    :param distance_calculation_func: the strategy to use
     """
 
     for vector in training_set:
@@ -171,7 +194,7 @@ def find_nearest_vectors_for_centroids(centroids_as_objects, training_set, strat
         min_centroid = None
 
         for centroid in centroids_as_objects:
-            argmin = strategy(centroid.get_value(), vector)
+            argmin = distance_calculation_func(centroid.get_centroid(), vector)
 
             if argmin < minimal_argmin:
                 minimal_argmin = argmin
@@ -199,7 +222,7 @@ def min_distance_avg_calculated_loss(centroids_as_objects, training_set, strateg
         min_dist = sys.maxsize
 
         for centroid in centroids_as_objects:
-            distance = strategy(centroid.get_value(), vector)
+            distance = strategy(centroid.get_centroid(), vector)
 
             if  distance < min_dist:
                 min_dist = distance
@@ -272,7 +295,12 @@ def knn(centroids, training_set):
 
         # update all centroids
         for centroid in centroids_as_objects:
-            centroid.update(vectors_vector_average)
+            centroid.update_centroid(vectors_vector_average)
+
+            if it == NUMBER_OF_ITERATIONS - 1:
+                centroid.update_nearest_neighbors()
+
+            centroid.clear_nearest_neighbors()
 
         print_iteration_and_centroid(it, centroids_as_objects)
 
@@ -293,13 +321,18 @@ def main():
     # instantiate K values to run over
     k_values_array = [2, 4, 8, 16]
 
-    # initialize image
-    img_as_rgb_matrix = load_img_file()
-
     # run the KNN algorithm for each of the values in the given array
     for k in k_values_array:
+        # initialize image
+        original_img, img_as_rgb_matrix = load_img_file()
+
         # run knn algorithm
         knn(init_centroids(img_as_rgb_matrix, k), img_as_rgb_matrix)
+
+        ''' Show image (pre-update) '''
+        # plt.imshow(np.reshape(img_as_rgb_matrix, original_img.shape))
+        # plt.grid(False)
+        # plt.show()
 
     plt.clf()
 
